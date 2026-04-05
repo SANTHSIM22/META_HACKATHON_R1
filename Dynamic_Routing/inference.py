@@ -20,6 +20,9 @@ import sys
 import textwrap
 from typing import List, Optional
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from openai import OpenAI
 
 from models import DynamicRouteAction, DynamicRouteObservation, RouteUpdate
