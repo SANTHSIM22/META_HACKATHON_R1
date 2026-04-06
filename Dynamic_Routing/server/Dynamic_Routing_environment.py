@@ -1,6 +1,10 @@
 import copy
+import os
 from uuid import uuid4
 from typing import Dict, Any, Optional, List
+
+from dotenv import load_dotenv
+load_dotenv()
 
 from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
@@ -13,7 +17,7 @@ except ImportError:
     from tasks import TASKS
 
 # ── CHANGE THIS LINE TO SWITCH TASKS ─────────────────────────────────────────
-ACTIVE_TASK = "easy_avoid_blockage"
+ACTIVE_TASK = os.getenv("DRO_TASK", "easy_avoid_blockage")
 # "easy_avoid_blockage"  → 1 truck,  3 packages
 # "medium_reroute_fleet" → 3 trucks, 9 packages
 # "hard_storm_logistics" → 5 trucks, 20 packages
@@ -93,23 +97,28 @@ class DynamicRoutingEnvironment(Environment):
             truck_map[update.truck_id]["route_order"] = list(update.new_route_order)
 
         # ── Handle Load Transfers ─────────────────────────────────────────
+        transfer_count = 0
         if hasattr(action, "load_transfers") and action.load_transfers:
             for transfer in action.load_transfers:
                 t1 = truck_map.get(transfer.from_truck_id)
                 t2 = truck_map.get(transfer.to_truck_id)
                 if not t1 or not t2:
-                    error_messages.append(f"❌ Transfer failed: Truck not found in transfer request.")
+                    error_messages.append(f"❌ Transfer failed: Truck not found.")
                     continue
                 if t1["current_location"] != t2["current_location"]:
-                    error_messages.append(f"❌ Transfer failed: {t1['id']} and {t2['id']} not at same location (nodes {t1['current_location']} != {t2['current_location']}).")
+                    error_messages.append(f"❌ Transfer failed: {t1['id']} and {t2['id']} not at same location.")
                     continue
                 if transfer.package_id not in t1["assigned_packages"]:
-                    error_messages.append(f"❌ Transfer failed: Package {transfer.package_id} not assigned to {t1['id']}.")
+                    error_messages.append(f"❌ Transfer failed: Package not assigned.")
                     continue
                 
+                pkg = next((p for p in GLOBAL_SIM["packages"] if p["id"] == transfer.package_id), None)
+                pkg_dest = pkg["destination"] if pkg else "Unknown"
+
                 t1["assigned_packages"].remove(transfer.package_id)
                 t2["assigned_packages"].append(transfer.package_id)
-                error_messages.append(f"✅ Load Transferred: Package {transfer.package_id} moved from {t1['id']} to {t2['id']}.")
+                transfer_count += 1
+                error_messages.append(f"✅ Transferred: {transfer.package_id} (Route Dest: {pkg_dest}) from {t1['id']} to {t2['id']}.")
 
         distances   = GLOBAL_SIM["distances"]
         def get_fuel_needed(route, start_loc):
@@ -209,7 +218,8 @@ class DynamicRoutingEnvironment(Environment):
         reward = sum(step_rewards) / len(step_rewards) if step_rewards else 0.0
 
         # Advance simulation time
-        GLOBAL_SIM["time_step"] += 50
+        load_time_penalty = transfer_count * 15  # 15 minutes per package transferred
+        GLOBAL_SIM["time_step"] += 50 + load_time_penalty
 
         # Check episode completion
         all_done = all(

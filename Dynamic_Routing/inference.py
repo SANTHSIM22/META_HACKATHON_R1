@@ -34,7 +34,7 @@ API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME   = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 
-# Task to run — change this or set DRO_TASK env var
+# Task to run — define in .env or default to easy
 TASK_NAME  = os.getenv("DRO_TASK", "easy_avoid_blockage")
 BENCHMARK  = "Dynamic_Routing"
 MAX_STEPS  = 10
@@ -83,9 +83,10 @@ SYSTEM_PROMPT = textwrap.dedent("""
       3. Each truck must visit ALL destinations of its assigned packages.
       4. Deliver packages before their deadlines. Minimize total travel time.
       5. WATCH YOUR FUEL! Traveling costs fuel. You DO NOT need to visit a fuel station unless your current fuel is insufficient to complete your remaining route. ONLY if fuel is critically low, inject a `fuel_stations` node into your `new_route_order` to refuel. Do not visit fuel stations unnecessarily.
-      6. If a truck reaches 0 fuel, it is STRANDED. You must use `load_transfers` to assign an active truck to its location node to pick up its packages.
-      7. Use EXACT truck IDs, node names, and package IDs from the observation.
-      8. Return ONLY valid JSON, no markdown, no explanation.
+      6. TRANSFER LOADS ONLY IF EFFICIENT: You MAY use `load_transfers` to transfer a package from one truck to another if it significantly saves overall delivery time. Both trucks must meet at the EXACT same node. Loading takes 15 minutes, so ONLY transfer if the receiving truck can cut travel time by more than 15 minutes compared to the original truck. Otherwise, do not transfer.
+      7. If a truck reaches 0 fuel, it is STRANDED. You must use `load_transfers` to assign an active truck to its location node to pick up its packages.
+      8. Use EXACT truck IDs, node names, and package IDs from the observation.
+      9. Return ONLY valid JSON, no markdown, no explanation.
 
     If metadata.error is present, analyze the error and fix it in your next response.
 """).strip()
@@ -184,6 +185,7 @@ def build_user_prompt(obs: DynamicRouteObservation, step: int) -> str:
         4. Each truck MUST visit ALL its package destinations
         5. Use EXACT node and truck IDs from the observation above
         6. Fuel stations are strictly OPTIONAL. Only detour to a `fuel_stations` node if a truck does not have enough fuel to finish its remaining route.
+        7. Evaluate possible load transfers. ONLY return a `load_transfers` object if meeting at a node saves more than 15 minutes of combined travel time.
 
         Output ONLY the JSON object with route_updates for ALL trucks.
     """).strip()
@@ -232,7 +234,7 @@ def parse_llm_response(text: str) -> Optional[DynamicRouteAction]:
         return None
 
 
-def get_model_action(
+async def get_model_action(
     client: OpenAI,
     obs: DynamicRouteObservation,
     step: int,
@@ -240,35 +242,45 @@ def get_model_action(
 ) -> tuple[Optional[DynamicRouteAction], str]:
     """
     Get action from the model.
-    Returns (action, llm_output) tuple.
+    Runs formatting and sync generation inside a thread to 
+    prevent freezing the asyncio event loop and causing WebSocket 
+    1011 Keepalive Ping Timeouts.
     """
     user_prompt = build_user_prompt(obs, step)
     conversation.append({"role": "user", "content": user_prompt})
     
-    try:
-        completion = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=conversation,
-            temperature=TEMPERATURE,
-            max_tokens=MAX_TOKENS,
-            stream=False,
-        )
-        
-        llm_output = (completion.choices[0].message.content or "").strip()
-        conversation.append({"role": "assistant", "content": llm_output})
-        
-        action = parse_llm_response(llm_output)
-        return action, llm_output
+    def run_sync():
+        try:
+            completion = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=conversation,
+                temperature=TEMPERATURE,
+                max_tokens=MAX_TOKENS,
+                stream=False,
+            )
+            return (completion.choices[0].message.content or "").strip(), None
+        except Exception as e:
+            return "", str(e)
+            
+    llm_output, err = await asyncio.to_thread(run_sync)
     
-    except Exception as exc:
-        print(f"[DEBUG] Model request failed: {exc}", flush=True)
+    if err:
+        print(f"[DEBUG] Model request failed: {err}", flush=True)
         return None, ""
+        
+    conversation.append({"role": "assistant", "content": llm_output})
+    
+    action = parse_llm_response(llm_output)
+    return action, llm_output
 
 
 # ── main loop ─────────────────────────────────────────────────────────────────
 async def main() -> None:
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-    env = await DynamicRouteEnv.from_docker_image(IMAGE_NAME)
+    env = await DynamicRouteEnv.from_docker_image(
+        IMAGE_NAME, 
+        env_vars={"DRO_TASK": TASK_NAME}
+    )
 
     log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
 
@@ -290,7 +302,7 @@ async def main() -> None:
             steps_taken = step
             
             # Get action from model
-            action, llm_output = get_model_action(client, obs, step, conversation)
+            action, llm_output = await get_model_action(client, obs, step, conversation)
             
             if action is None:
                 # LLM gave unparseable output
