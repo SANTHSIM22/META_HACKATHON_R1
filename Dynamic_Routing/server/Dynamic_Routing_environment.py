@@ -17,7 +17,8 @@ except ImportError:
     from tasks import TASKS
 
 # ── CHANGE THIS LINE TO SWITCH TASKS ─────────────────────────────────────────
-ACTIVE_TASK = os.getenv("DRO_TASK", "easy_avoid_blockage")
+raw_task = os.getenv("DRO_TASK", "easy_avoid_blockage")
+ACTIVE_TASK = raw_task.strip("\"'")
 # "easy_avoid_blockage"  → 1 truck,  3 packages
 # "medium_reroute_fleet" → 3 trucks, 9 packages
 # "hard_storm_logistics" → 5 trucks, 20 packages

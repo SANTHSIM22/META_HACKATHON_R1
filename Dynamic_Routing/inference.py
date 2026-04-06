@@ -35,7 +35,8 @@ API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME   = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 
 # Task to run — define in .env or default to easy
-TASK_NAME  = os.getenv("DRO_TASK", "easy_avoid_blockage")
+raw_task = os.getenv("DRO_TASK", "easy_avoid_blockage")
+TASK_NAME = raw_task.strip("\"'")
 BENCHMARK  = "Dynamic_Routing"
 MAX_STEPS  = 10
 SUCCESS_SCORE_THRESHOLD = 0.5
