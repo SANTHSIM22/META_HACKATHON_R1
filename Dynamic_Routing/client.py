@@ -80,6 +80,7 @@ class DynamicRouteEnv(
             packages=obs_data.get("packages", []),
             event=obs_data.get("event", None),
             distances=obs_data.get("distances", {}),
+            fuel_stations=obs_data.get("fuel_stations", []),
             done=payload.get("done", False),
             reward=payload.get("reward"),
             metadata=obs_data.get("metadata", {}),

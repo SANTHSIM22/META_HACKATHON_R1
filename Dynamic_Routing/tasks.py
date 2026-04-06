@@ -107,12 +107,18 @@ class DynamicTask:
                     "current_location": depot,
                     "route_order": shuffled_dest,
                     "assigned_packages": assigned,
+                    "fuel": float(random.randint(40, 100)),
+                    "fuel_capacity": 100.0,
                 }
             )
 
         # 5. Disruptive event
         node_a = random.choice(all_nodes)
         node_b = random.choice([n for n in all_nodes if n != node_a])
+
+        # 6. Fuel stations
+        num_stations = max(1, self.num_packages // 3)
+        fuel_stations = random.sample(all_nodes, num_stations)
 
         self.initial_state = {
             "time_step": 0,
@@ -126,6 +132,7 @@ class DynamicTask:
                 },
             },
             "distances": distances,
+            "fuel_stations": fuel_stations,
         }
         return copy.deepcopy(self.initial_state)
 

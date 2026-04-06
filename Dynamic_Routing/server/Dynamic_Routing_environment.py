@@ -85,20 +85,59 @@ class DynamicRoutingEnvironment(Environment):
         GLOBAL_STEP_COUNT += 1
         self._state.step_count = GLOBAL_STEP_COUNT
 
+        error_messages: List[str] = []
+        step_rewards: List[float] = []
+
         # Apply ALL route updates first before simulating
         for update in action.route_updates:
             truck_map[update.truck_id]["route_order"] = list(update.new_route_order)
 
-        # ── Simulate exactly ONE hop per truck ────────────────────────────
+        # ── Handle Load Transfers ─────────────────────────────────────────
+        if hasattr(action, "load_transfers") and action.load_transfers:
+            for transfer in action.load_transfers:
+                t1 = truck_map.get(transfer.from_truck_id)
+                t2 = truck_map.get(transfer.to_truck_id)
+                if not t1 or not t2:
+                    error_messages.append(f"❌ Transfer failed: Truck not found in transfer request.")
+                    continue
+                if t1["current_location"] != t2["current_location"]:
+                    error_messages.append(f"❌ Transfer failed: {t1['id']} and {t2['id']} not at same location (nodes {t1['current_location']} != {t2['current_location']}).")
+                    continue
+                if transfer.package_id not in t1["assigned_packages"]:
+                    error_messages.append(f"❌ Transfer failed: Package {transfer.package_id} not assigned to {t1['id']}.")
+                    continue
+                
+                t1["assigned_packages"].remove(transfer.package_id)
+                t2["assigned_packages"].append(transfer.package_id)
+                error_messages.append(f"✅ Load Transferred: Package {transfer.package_id} moved from {t1['id']} to {t2['id']}.")
+
         distances   = GLOBAL_SIM["distances"]
+        def get_fuel_needed(route, start_loc):
+            if not route: return 0
+            cost = 0
+            curr = start_loc
+            for nxt in route:
+                cost += distances.get(curr, {}).get(nxt, 0) * 0.15
+                curr = nxt
+            return cost
+
+        # ── Refuel Trucks currently at Stations ───────────────────────────
+        fuel_stations = GLOBAL_SIM.get("fuel_stations", [])
+        for truck in GLOBAL_SIM["trucks"]:
+            fuel_needed = get_fuel_needed(truck["route_order"], truck["current_location"])
+            # Fuel constraint check: only refuel if fuel is low or won't make it
+            if truck["current_location"] in fuel_stations and (truck["fuel"] < fuel_needed or truck["fuel"] <= 20.0):
+                truck["fuel"] = truck.get("fuel_capacity", 100.0)
+                fuel_stations.remove(truck["current_location"])
+                error_messages.append(f"⛽ Truck {truck['id']} fully refueled at {truck['current_location']}! Station is now EMPTY/CLOSED.")
+
+        # ── Simulate exactly ONE hop per truck ────────────────────────────
         event       = GLOBAL_SIM.get("event") or {}
         blocked     = event.get("blocked_edges", [])
         delays      = event.get("traffic_delays", {})
         package_map = {p["id"]: p for p in GLOBAL_SIM["packages"]}
 
         # FIX: collect rewards from ALL trucks, average at the end
-        step_rewards: List[float] = []
-        error_messages: List[str] = []
 
         for truck in GLOBAL_SIM["trucks"]:
             if not truck["route_order"]:
@@ -126,6 +165,17 @@ class DynamicRoutingEnvironment(Environment):
                 distances.get(current_loc, {}).get(next_stop, 999)
                 + delays.get(next_stop, 0)
             )
+            
+            # ⛽ FUEL CHECK ⛽
+            fuel_cost = travel_time * 0.15
+            current_fuel = truck.get("fuel", 100.0)
+            if current_fuel < fuel_cost:
+                error_messages.append(
+                    f"⛽ Truck {truck['id']} ran out of fuel! Needed {fuel_cost:.1f} but has {current_fuel:.1f}. Stranded at {current_loc}."
+                )
+                continue
+            
+            truck["fuel"] = current_fuel - fuel_cost
             current_time += travel_time
 
             # FIX: Collect reward per truck, average later
@@ -147,6 +197,13 @@ class DynamicRoutingEnvironment(Environment):
             # FIX: Move truck to next_stop and remove it from route_order
             truck["current_location"] = next_stop
             truck["route_order"]      = truck["route_order"][1:]  # remove first hop only
+            
+            # Refuel immediate if arriving at a fuel station and fuel is low
+            fuel_needed = get_fuel_needed(truck["route_order"], next_stop)
+            if next_stop in fuel_stations and (truck["fuel"] < fuel_needed or truck["fuel"] <= 20.0):
+                truck["fuel"] = truck.get("fuel_capacity", 100.0)
+                fuel_stations.remove(next_stop)
+                error_messages.append(f"⛽ Truck {truck['id']} fully refueled at {next_stop}! Station is now EMPTY/CLOSED.")
 
         # FIX: Average reward across ALL trucks that moved this step
         reward = sum(step_rewards) / len(step_rewards) if step_rewards else 0.0
@@ -195,6 +252,7 @@ class DynamicRoutingEnvironment(Environment):
                 packages=[],
                 event=None,
                 distances={},
+                fuel_stations=[],
                 done=False,
                 reward=0.0,
                 metadata={"task": ACTIVE_TASK, "error": "❌ Call Reset first!"},
@@ -205,6 +263,7 @@ class DynamicRoutingEnvironment(Environment):
             packages=[copy.deepcopy(p) for p in GLOBAL_SIM["packages"]],
             event=copy.deepcopy(GLOBAL_SIM.get("event")),
             distances=copy.deepcopy(GLOBAL_SIM["distances"]),
+            fuel_stations=copy.deepcopy(GLOBAL_SIM.get("fuel_stations", [])),
             done=done,
             reward=reward,
             metadata={"task": ACTIVE_TASK, "error": error},
