@@ -6,6 +6,9 @@ except Exception as e:
 import os
 import sys
 
+# Force disable the default Gradio playground
+os.environ["ENABLE_WEB_INTERFACE"] = "false"
+
 try:
     from ..models import DynamicRouteAction, DynamicRouteObservation
     from .Dynamic_Routing_environment import DynamicRoutingEnvironment
@@ -21,6 +24,32 @@ app = create_app(
     env_name="Dynamic_Routing",
     max_concurrent_envs=1,
 )
+
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import Request
+
+@app.exception_handler(ValueError)
+async def value_error_handler(request: Request, exc: ValueError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)},
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+    )
+
+@app.get("/web", response_class=HTMLResponse)
+async def custom_ui(request: Request):
+    html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
+
 
 def main(host: str = "0.0.0.0", port: int = 8000) -> None:
     import uvicorn

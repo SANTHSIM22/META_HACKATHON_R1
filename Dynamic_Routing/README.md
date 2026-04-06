@@ -61,7 +61,7 @@ finally:
 3. **Unexpected Events:** Certain road segments will become blocked (e.g., storms). Trucks attempting to travel on these blocked paths will be forced to stop, requiring the agent to `step` again with a routed bypass.
 4. **Scoring:** The final score (0.0 to 1.0) depends on maximizing on-time deliveries and minimizing inefficient travel.
 
-## Testing in the Web UI (Gradio)
+## Testing in the Web UI (Custom UI)
 
 If you deploy the environment to Hugging Face Spaces or run it locally with the web interface enabled (on `/web`), you can interact with the simulation directly in your browser.
 

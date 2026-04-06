@@ -61,6 +61,7 @@ class DynamicRouteEnv(
                 if hasattr(ru, "truck_id") else ru 
                 for ru in action.route_updates
             ]
+
         return payload
 
     def _parse_result(self, payload: Dict) -> StepResult[DynamicRouteObservation]:

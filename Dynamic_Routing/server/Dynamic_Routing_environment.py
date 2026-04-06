@@ -40,11 +40,24 @@ class DynamicRoutingEnvironment(Environment):
 
     # ── reset ─────────────────────────────────────────────────────────────
 
-    def reset(self) -> DynamicRouteObservation:
-        global GLOBAL_SIM, GLOBAL_STEP_COUNT
+    def reset(self, seed: Optional[int] = None, episode_id: Optional[str] = None, **kwargs: Any) -> DynamicRouteObservation:
+        global GLOBAL_SIM, GLOBAL_STEP_COUNT, ACTIVE_TASK
+        
+        with open("reset_args.txt", "w") as f:
+            f.write(f"episode_id: {episode_id}, seed: {seed}, kwargs: {kwargs}\n")
+        
+        if episode_id and episode_id.startswith("task:"):
+            task_key = episode_id.split("task:")[1]
+            if task_key in TASKS:
+                ACTIVE_TASK = task_key
+                self._task = TASKS[ACTIVE_TASK]
+                
         GLOBAL_STEP_COUNT = 0
-        self._state = State(episode_id=str(uuid4()), step_count=0)
+        self._state = State(episode_id=episode_id or str(uuid4()), step_count=0)
         GLOBAL_SIM  = self._task.generate_state()
+        
+        with open("reset_args.txt", "a") as f:
+            f.write(f"GENERATED TASK NAME: {self._task.name}, TRUCKS: {self._task.num_trucks}\n")
         return self._build_obs()
 
     # ── step ──────────────────────────────────────────────────────────────
