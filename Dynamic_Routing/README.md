@@ -1,6 +1,6 @@
 ---
-title: Dynamic Routing Environment Server
-emoji: 🎸
+title: Dynamic Route Optimizer
+emoji: 🚛
 colorFrom: indigo
 colorTo: pink
 sdk: docker
@@ -11,53 +11,94 @@ tags:
   - openenv
 ---
 
-# Dynamic Routing Environment
+# Dynamic Route Optimizer
 
-A simple test environment that echoes back messages. Perfect for testing the env APIs as well as demonstrating environment usage patterns.
+A dynamic logistics simulation built on the OpenEnv specification. This environment challenges Large Language Models (LLMs) and RL agents to manage delivery fleets, prioritize package deadlines, and instantly reroute trucks when unpredictable obstacles (like severe weather) block the roads.
 
 ## Quick Start
 
-The simplest way to use the Dynamic Routing environment is through the `DynamicRoutingEnv` class:
+The simplest way to use the Dynamic Route Optimizer environment is through the `DynamicRouteEnv` client:
 
 ```python
-from Dynamic_Routing import DynamicRoutingAction, DynamicRoutingEnv
+from client import DynamicRouteEnv
+from models import DynamicRouteAction
 
 try:
     # Create environment from Docker image
-    Dynamic_Routingenv = DynamicRoutingEnv.from_docker_image("Dynamic_Routing-env:latest")
+    env = DynamicRouteEnv.from_docker_image("dynamic-route-env:latest")
 
-    # Reset
-    result = Dynamic_Routingenv.reset()
-    print(f"Reset: {result.observation.echoed_message}")
+    # Reset (generates a brand new map and scenario)
+    result = env.reset()
+    print(f"Time Step: {result.observation.time_step}")
+    print(f"Trucks Available: {len(result.observation.trucks)}")
 
-    # Send multiple messages
-    messages = ["Hello, World!", "Testing echo", "Final message"]
-
-    for msg in messages:
-        result = Dynamic_Routingenv.step(DynamicRoutingAction(message=msg))
-        print(f"Sent: '{msg}'")
-        print(f"  → Echoed: '{result.observation.echoed_message}'")
-        print(f"  → Length: {result.observation.message_length}")
-        print(f"  → Reward: {result.reward}")
+    # Send a step - Provide route updates for the trucks
+    # Format: {"truck_id": "TRK_123", "new_route_order": ["Node_1_2", "Node_4_5"]}
+    
+    # Let's say we have TRK_100 and valid nodes Node_50_50 and Node_20_20
+    action = DynamicRouteAction(
+        route_updates=[
+            {
+                "truck_id": "TRK_100", 
+                "new_route_order": ["Node_50_50", "Node_20_20"]
+            }
+        ]
+    )
+    
+    result = env.step(action)
+    print(f"Reward: {result.reward}")
+    print(f"Done: {result.done}")
 
 finally:
     # Always clean up
-    Dynamic_Routingenv.close()
+    env.close()
 ```
 
-That's it! The `DynamicRoutingEnv.from_docker_image()` method handles:
-- Starting the Docker container
-- Waiting for the server to be ready
-- Connecting to the environment
-- Container cleanup when you call `close()`
+## How the Simulation Works
+
+1. **Procedural Maps:** Calling `reset()` generates a new set of random Nodes and mathematically connects them via Manhattan Distance.
+2. **Strict Validation:** The system strictly validates agent route proposals. The proposed nodes must exactly match the internal nodes randomly generated during the current episode.
+3. **Unexpected Events:** Certain road segments will become blocked (e.g., storms). Trucks attempting to travel on these blocked paths will be forced to stop, requiring the agent to `step` again with a routed bypass.
+4. **Scoring:** The final score (0.0 to 1.0) depends on maximizing on-time deliveries and minimizing inefficient travel.
+
+## Testing in the Web UI (Gradio)
+
+If you deploy the environment to Hugging Face Spaces or run it locally with the web interface enabled (on `/web`), you can interact with the simulation directly in your browser.
+
+Here is exactly how to submit actions in the Web UI:
+
+1. **Click Reset First:** You must begin an episode by clicking `Reset`. If you try to step before resetting, the UI will throw an error: `❌ No simulation loaded! Click RESET first.`
+2. **Copy Valid IDs:** Look at the `trucks` list in the Observation box to get a valid `truck_id` (e.g., `TRK_143`). Look at the `distances` dictionary to get valid node names (e.g., `Node_50_50`). 
+3. **Format Your Input:** In the **Action** input box, you must provide a valid JSON object that matches the action schema.
+
+**Example Valid JSON Action Input:**
+```json
+{
+  "route_updates": [
+    {
+      "truck_id": "TRK_143",
+      "new_route_order": [
+        "Node_50_50",
+        "Node_12_8"
+      ]
+    }
+  ]
+}
+```
+
+### Common Web UI Errors to Avoid:
+* **Empty Updates:** If you send `{}` or omit the `route_updates` array, you get: `❌ route_updates is empty! Provide truck_id + new_route_order...`
+* **Invalid Truck ID:** If you guess a truck ID incorrectly, you get: `❌ Truck 'TRK_999' not found! Valid IDs: [...]`
+* **Invalid Node:** If you type a node that wasn't generated in *this* round's map, you get: `❌ Node 'Node_99_99' not found in city map! Valid nodes: [...]`
+* **Driving into a Storm:** If your route crosses the dynamic roadblock mentioned in the `event` object, the truck will stall and you'll see a warning in the Observation's `error` metadata field: `🚧 Truck TRK_143 blocked: Node_A → Node_B. Reroute!`
 
 ## Building the Docker Image
 
 Before using the environment, you need to build the Docker image:
 
 ```bash
-# From project root
-docker build -t Dynamic_Routing-env:latest -f server/Dockerfile .
+# From the Dynamic_Routing directory
+docker build -t dynamic-route-env:latest -f server/Dockerfile .
 ```
 
 ## Deploying to Hugging Face Spaces
@@ -73,163 +114,34 @@ openenv push --namespace my-org --private
 ```
 
 The `openenv push` command will:
-1. Validate that the directory is an OpenEnv environment (checks for `openenv.yaml`)
-2. Prepare a custom build for Hugging Face Docker space (enables web interface)
-3. Upload to Hugging Face (ensuring you're logged in)
+1. Validate that the directory is an OpenEnv environment (checks for `openenv.yaml`).
+2. Prepare a custom build for Hugging Face Docker space (enables web interface).
+3. Upload to Hugging Face.
 
-### Prerequisites
+## Changing Difficulties
 
-- Authenticate with Hugging Face: The command will prompt for login if not already authenticated
+The environment ships with 3 difficulty tasks:
+- `easy_avoid_blockage`: 1 truck, 3 packages, 50x50 grid
+- `medium_reroute_fleet`: 3 trucks, 9 packages, 100x100 grid
+- `hard_storm_logistics`: 5 trucks, 20 packages, 200x200 grid
 
-### Options
-
-- `--directory`, `-d`: Directory containing the OpenEnv environment (defaults to current directory)
-- `--repo-id`, `-r`: Repository ID in format 'username/repo-name' (defaults to 'username/env-name' from openenv.yaml)
-- `--base-image`, `-b`: Base Docker image to use (overrides Dockerfile FROM)
-- `--private`: Deploy the space as private (default: public)
-
-### Examples
-
-```bash
-# Push to your personal namespace (defaults to username/env-name from openenv.yaml)
-openenv push
-
-# Push to a specific repository
-openenv push --repo-id my-org/my-env
-
-# Push with a custom base image
-openenv push --base-image ghcr.io/meta-pytorch/openenv-base:latest
-
-# Push as a private space
-openenv push --private
-
-# Combine options
-openenv push --repo-id my-org/my-env --base-image custom-base:latest --private
-```
-
-After deployment, your space will be available at:
-`https://huggingface.co/spaces/<repo-id>`
-
-The deployed space includes:
-- **Web Interface** at `/web` - Interactive UI for exploring the environment
-- **API Documentation** at `/docs` - Full OpenAPI/Swagger interface
-- **Health Check** at `/health` - Container health monitoring
-- **WebSocket** at `/ws` - Persistent session endpoint for low-latency interactions
+To switch datasets, open `server/Dynamic_Routing_environment.py` and modify the `ACTIVE_TASK` constant, then restart your server.
 
 ## Environment Details
 
-### Action
-**DynamicRoutingAction**: Contains a single field
-- `message` (str) - The message to echo back
+### Action (`DynamicRouteAction`)
+- `route_updates`: A list containing dictionaries with `truck_id` and `new_route_order` for the fleet.
 
-### Observation
-**DynamicRoutingObservation**: Contains the echo response and metadata
-- `echoed_message` (str) - The message echoed back
-- `message_length` (int) - Length of the message
-- `reward` (float) - Reward based on message length (length × 0.1)
-- `done` (bool) - Always False for echo environment
-- `metadata` (dict) - Additional info like step count
-
-### Reward
-The reward is calculated as: `message_length × 0.1`
-- "Hi" → reward: 0.2
-- "Hello, World!" → reward: 1.3
-- Empty message → reward: 0.0
-
-## Advanced Usage
-
-### Connecting to an Existing Server
-
-If you already have a Dynamic Routing environment server running, you can connect directly:
-
-```python
-from Dynamic_Routing import DynamicRoutingEnv
-
-# Connect to existing server
-Dynamic_Routingenv = DynamicRoutingEnv(base_url="<ENV_HTTP_URL_HERE>")
-
-# Use as normal
-result = Dynamic_Routingenv.reset()
-result = Dynamic_Routingenv.step(DynamicRoutingAction(message="Hello!"))
-```
-
-Note: When connecting to an existing server, `Dynamic_Routingenv.close()` will NOT stop the server.
-
-### Using the Context Manager
-
-The client supports context manager usage for automatic connection management:
-
-```python
-from Dynamic_Routing import DynamicRoutingAction, DynamicRoutingEnv
-
-# Connect with context manager (auto-connects and closes)
-with DynamicRoutingEnv(base_url="http://localhost:8000") as env:
-    result = env.reset()
-    print(f"Reset: {result.observation.echoed_message}")
-    # Multiple steps with low latency
-    for msg in ["Hello", "World", "!"]:
-        result = env.step(DynamicRoutingAction(message=msg))
-        print(f"Echoed: {result.observation.echoed_message}")
-```
-
-The client uses WebSocket connections for:
-- **Lower latency**: No HTTP connection overhead per request
-- **Persistent session**: Server maintains your environment state
-- **Efficient for episodes**: Better for many sequential steps
-
-### Concurrent WebSocket Sessions
-
-The server supports multiple concurrent WebSocket connections. To enable this,
-modify `server/app.py` to use factory mode:
-
-```python
-# In server/app.py - use factory mode for concurrent sessions
-app = create_app(
-    DynamicRoutingEnvironment,  # Pass class, not instance
-    DynamicRoutingAction,
-    DynamicRoutingObservation,
-    max_concurrent_envs=4,  # Allow 4 concurrent sessions
-)
-```
-
-Then multiple clients can connect simultaneously:
-
-```python
-from Dynamic_Routing import DynamicRoutingAction, DynamicRoutingEnv
-from concurrent.futures import ThreadPoolExecutor
-
-def run_episode(client_id: int):
-    with DynamicRoutingEnv(base_url="http://localhost:8000") as env:
-        result = env.reset()
-        for i in range(10):
-            result = env.step(DynamicRoutingAction(message=f"Client {client_id}, step {i}"))
-        return client_id, result.observation.message_length
-
-# Run 4 episodes concurrently
-with ThreadPoolExecutor(max_workers=4) as executor:
-    results = list(executor.map(run_episode, range(4)))
-```
+### Observation (`DynamicRouteObservation`)
+- `time_step`: Current simulation time.
+- `trucks`: List of truck states (location, assigned packages, pending route order).
+- `packages`: Status and deadlines for all packages.
+- `event`: Contains the `traffic_delays` and `blocked_edges` for real-time avoidance.
+- `distances`: The full procedurally generated dictionary matrix tracking distances between all generated nodes.
 
 ## Development & Testing
 
-### Direct Environment Testing
-
-Test the environment logic directly without starting the HTTP server:
-
-```bash
-# From the server directory
-python3 server/Dynamic_Routing_environment.py
-```
-
-This verifies that:
-- Environment resets correctly
-- Step executes actions properly
-- State tracking works
-- Rewards are calculated correctly
-
-### Running Locally
-
-Run the server locally for development:
+Run the server locally for development without Docker:
 
 ```bash
 uvicorn server.app:app --reload
@@ -239,17 +151,13 @@ uvicorn server.app:app --reload
 
 ```
 Dynamic_Routing/
-├── .dockerignore         # Docker build exclusions
-├── __init__.py            # Module exports
-├── README.md              # This file
-├── openenv.yaml           # OpenEnv manifest
-├── pyproject.toml         # Project metadata and dependencies
-├── uv.lock                # Locked dependencies (generated)
-├── client.py              # DynamicRoutingEnv client
-├── models.py              # Action and Observation models
+├── client.py                # Python client for communicating with env
+├── models.py                # Action/Observation schemas
+├── tasks.py                 # Task Generator & Grading logic
+├── openenv.yaml             # Manifest file
+├── requirements.txt         # Dependencies
 └── server/
-    ├── __init__.py        # Server module exports
-    ├── Dynamic_Routing_environment.py  # Core environment logic
-    ├── app.py             # FastAPI application (HTTP + WebSocket endpoints)
-    └── Dockerfile         # Container image definition
+    ├── Dynamic_Routing_environment.py  # Core simulation logic
+    ├── app.py               # REST/WebSocket FastAPI Wrapper
+    └── Dockerfile           # Docker configuration
 ```
