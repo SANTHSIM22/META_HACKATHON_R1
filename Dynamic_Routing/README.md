@@ -18,6 +18,8 @@ A dynamic logistics simulation built on the OpenEnv specification. This environm
 
 The motivation behind this environment is to test an agent's ability to handle dynamic constraints, spatial reasoning, and real-time combinatorial optimization. Real-world logistics require adapting to sudden changes (traffic, storms, breakdowns); this environment provides a lightweight, pure-text interface to benchmark those capabilities.
 
+> **NOTE:** While reset values appear random, they are procedurally generated using a specific logic: nodes are placed as coordinates on a grid (e.g., 50x50 or 200x200 depending on difficulty), and distances are calculated using **Manhattan distance** with slight randomized traffic noise. Trucks are deliberately initialized with shuffled, inefficient routes to challenge the agent. You can use AI to create the route updates based on the raw JSON observation.
+
 ## Setup and Usage Instructions
 
 ### Configuration (.env)
