@@ -30,7 +30,7 @@ from client import DynamicRouteEnv
 
 # ── config ────────────────────────────────────────────────────────────────────
 IMAGE_NAME   = os.getenv("IMAGE_NAME", "dynamic-routing-env")
-API_KEY      = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+API_KEY      = os.getenv("OPENAI_API_KEY") or os.getenv("HF_TOKEN") or os.getenv("API_KEY")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME   = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 
@@ -133,7 +133,7 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     success_val = "true" if success else "false"
     print(
-        f"[END] success={success_val} steps={steps} score={score:.2f} rewards={rewards_str}",
+        f"[END] success={success_val} steps={steps} score={score:.4f} rewards={rewards_str}",
         flush=True,
     )
 

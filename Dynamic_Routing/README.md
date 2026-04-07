@@ -13,9 +13,14 @@ tags:
 
 # Dynamic Route Optimizer
 
+## Environment Description and Motivation
 A dynamic logistics simulation built on the OpenEnv specification. This environment challenges Large Language Models (LLMs) and RL agents to manage delivery fleets, prioritize package deadlines, and instantly reroute trucks when unpredictable obstacles (like severe weather) block the roads.
 
-## Configuration (.env)
+The motivation behind this environment is to test an agent's ability to handle dynamic constraints, spatial reasoning, and real-time combinatorial optimization. Real-world logistics require adapting to sudden changes (traffic, storms, breakdowns); this environment provides a lightweight, pure-text interface to benchmark those capabilities.
+
+## Setup and Usage Instructions
+
+### Configuration (.env)
 
 Before running the project or the inference scripts, set up your environment variables by copying `.env.example` to `.env`. 
 
@@ -26,6 +31,7 @@ The following variables are available to configure API clients and the environme
 API_BASE_URL=https://router.huggingface.co/v1
 MODEL_NAME=Qwen/Qwen2.5-72B-Instruct
 API_KEY=your_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 HF_TOKEN=your_huggingface_token_here
 
 # Docker and Environment Configuration
@@ -38,6 +44,22 @@ IMAGE_NAME=dynamic-routing-env
 # - hard_storm_logistics
 DRO_TASK=easy_avoid_blockage
 ```
+
+## Action and Observation Spaces
+
+### Observation Space (DynamicRouteObservation)
+The environment provides the following state information per step:
+* `time_step`: Current simulation time (int)
+* `trucks`: List of trucks, each with `id`, `current_location`, `route_order`, `assigned_packages`, `fuel`, and `fuel_capacity`
+* `packages`: List of packages, each with `id`, `destination`, `deadline`, and `status` (`pending`, `delivered`, `late`)
+* `event`: Any disruptive events (e.g., storms) containing `description`, `blocked_edges`, and `traffic_delays`
+* `distances`: Travel time matrix between all nodes in the map
+* `fuel_stations`: List of node IDs where trucks can refuel
+
+### Action Space (DynamicRouteAction)
+To control the fleet, output the following structured JSON:
+* `route_updates`: A list assigning a `new_route_order` (list of nodes to visit sequentially) to a specific `truck_id`
+* `load_transfers`: (Optional) Transfer packages between trucks if they are at the identical location node
 
 ## Quick Start
 
@@ -175,12 +197,33 @@ The `openenv push` command will:
 2. Prepare a custom build for Hugging Face Docker space (enables web interface).
 3. Upload to Hugging Face.
 
-## Changing Difficulties
+## Task Descriptions
 
 The environment ships with 3 difficulty tasks:
-- `easy_avoid_blockage`: 1 truck, 3 packages, 50x50 grid
-- `medium_reroute_fleet`: 3 trucks, 9 packages, 100x100 grid
-- `hard_storm_logistics`: 5 trucks, 20 packages, 200x200 grid
+
+*   **Easy: `easy_avoid_blockage`**
+    *   **Objective:** 1 truck avoids 1 blocked road and delivers 3 packages on a 50x50 grid.
+    *   **Expected Difficulty:** Easy. Requires basic pathfinding and avoiding a single roadblock.
+
+*   **Medium: `medium_reroute_fleet`**
+    *   **Objective:** 3 trucks must be rerouted efficiently across 9 packages on a 100x100 grid.
+    *   **Expected Difficulty:** Medium. Requires fleet coordination and handling multiple delivery schedules simultaneously.
+
+*   **Hard: `hard_storm_logistics`**
+    *   **Objective:** 5 trucks must handle severe storm chaos and deliver 20 packages on a 200x200 grid.
+    *   **Expected Difficulty:** Hard. Requires advanced routing, load balancing, fuel management, and large-scale rerouting under severe constraints.
+
+## Baseline Scores
+
+Here are the expected baseline performance scores (out of 1.0) using standard inference techniques:
+
+| Model | Easy Task | Medium Task | Hard Task |
+| :--- | :--- | :--- | :--- |
+| Random Actions | 0.05 | 0.01 | 0.00 |
+| Greedy Simple Heuristic | 0.85 | 0.60 | 0.35 |
+| `Qwen/Qwen2.5-72B-Instruct` (0-Shot) | 0.95 | 0.70 | 0.45 |
+
+*(Baseline scores measure ratio of successful on-time deliveries penalized by travel time and delayed arrivals. 1.0 indicates perfect, on-time delivery across the entire fleet).*
 
 To switch datasets, set the `DRO_TASK` environment variable when starting the server:
 

@@ -63,6 +63,10 @@ class DynamicRoutingEnvironment(Environment):
             f.write(f"GENERATED TASK NAME: {self._task.name}, TRUCKS: {self._task.num_trucks}\n")
         return self._build_obs()
 
+    def state(self) -> State:
+        """Returns the current structured State object."""
+        return self._state
+
     # ── step ──────────────────────────────────────────────────────────────
 
     def step(self, action: DynamicRouteAction) -> DynamicRouteObservation:  # type: ignore[override]
