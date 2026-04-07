@@ -155,21 +155,21 @@ Uses cloud-based LLM providers (OpenAI-compatible APIs):
 
 ```bash
 # Configure environment variables
-export API_BASE_URL="https://api.openai.com/v1"
-export MODEL_NAME="gpt-4"
-export API_KEY="your-api-key"
+export API_BASE_URL="https://router.huggingface.co/v1"
+export MODEL_NAME="Qwen/Qwen2.5-72B-Instruct"
+export OPENAI_API_KEY="your-api-key"
 export DRO_TASK="easy_avoid_blockage"
 export IMAGE_NAME="dynamic-routing-env"
 
 # Run inference
-python inference.py
+python Dynamic_Routing/inference.py
 ```
 
 Output format:
 ```
-[START] task=easy_avoid_blockage env=Dynamic_Routing model=gpt-4
-[STEP]  step=1 action={...} reward=0.75 done=false error=null
-[END]   success=true steps=5 score=0.92 rewards=0.75,0.80,0.85,0.88,0.92
+[START] task=easy_avoid_blockage env=Dynamic_Routing model=Qwen/Qwen2.5-72B-Instruct
+[STEP] step=1 action={"route_updates":[{"truck_id":"TRK_XX","new_route_order":["Node_XX"]}]} reward=0.75 done=false error=null
+[END] success=true steps=5 score=0.92 rewards=0.75,0.80,0.85,0.88,0.92
 ```
 
 Features:
