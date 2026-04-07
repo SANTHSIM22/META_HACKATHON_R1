@@ -8,24 +8,24 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg:           #f5f4f1;
-      --surface:      #ffffff;
-      --surface-2:    #f9f8f6;
-      --surface-3:    #f3f1ed;
-      --border:       #e6e3dc;
-      --border-2:     #eeece7;
-      --text-1:       #18160f;
-      --text-2:       #5c5a54;
-      --text-3:       #9c9890;
-      --accent:       #c96820;
-      --accent-soft:  #fdf0e6;
-      --accent-hover: #b35c1b;
-      --green:        #1a6648;
-      --green-soft:   #eaf4ef;
-      --red:          #b83232;
-      --red-soft:     #fdf0ee;
-      --blue:         #2b5faa;
-      --blue-soft:    #eef2fa;
+      --bg:           #1a1a1a;
+      --surface:      #212121;
+      --surface-2:    #2a2a2a;
+      --surface-3:    #2f2f2f;
+      --border:       #3a3a3a;
+      --border-2:     #333333;
+      --text-1:       #ececec;
+      --text-2:       #b4b4b4;
+      --text-3:       #8e8e8e;
+      --accent:       #cc785c;
+      --accent-soft:  rgba(204, 120, 92, 0.15);
+      --accent-hover: #d4866d;
+      --green:        #5fb57a;
+      --green-soft:   rgba(95, 181, 122, 0.15);
+      --red:          #d97066;
+      --red-soft:     rgba(217, 112, 102, 0.15);
+      --blue:         #6ba3d9;
+      --blue-soft:    rgba(107, 163, 217, 0.15);
       --topbar-h:     54px;
       --sidebar-w:    272px;
       --radius-sm:    5px;
@@ -64,7 +64,7 @@
     }
     .topbar-left { display: flex; align-items: center; gap: 12px; }
     .brand-mark {
-      width: 26px; height: 26px; background: var(--text-1);
+      width: 26px; height: 26px; background: var(--accent);
       border-radius: 6px; display: flex; align-items: center; justify-content: center;
     }
     .brand-name { font-family: var(--font-display); font-size: 16px; color: var(--text-1); }
@@ -80,8 +80,8 @@
       width: 7px; height: 7px; border-radius: 50%; background: var(--text-3);
       transition: background 200ms, box-shadow 200ms;
     }
-    .conn-dot.ok  { background: #27ae60; box-shadow: 0 0 0 3px rgba(39,174,96,.18); }
-    .conn-dot.err { background: var(--red); box-shadow: 0 0 0 3px rgba(184,50,50,.15); }
+    .conn-dot.ok  { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+    .conn-dot.err { background: var(--red); box-shadow: 0 0 0 3px var(--red-soft); }
 
     /* Sidebar */
     .sidebar {
@@ -112,11 +112,11 @@
     .diff-badge:hover { border-color: var(--accent); color: var(--text-1); }
     .diff-badge.sel   { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
     .diff-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-    .d-easy   { background: #27ae60; }
-    .d-med    { background: #e67e22; }
+    .d-easy   { background: var(--green); }
+    .d-med    { background: #e6a355; }
     .d-hard   { background: var(--red); }
     .diff-meta { margin-left: auto; font-size: 11px; color: var(--text-3); }
-    .diff-badge.sel .diff-meta { color: rgba(201,104,32,.65); }
+    .diff-badge.sel .diff-meta { color: rgba(204, 120, 92, 0.7); }
 
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 7px;
@@ -125,12 +125,12 @@
       cursor: pointer; transition: all 130ms var(--ease); width: 100%;
     }
     .btn:active { transform: scale(.98); }
-    .btn-dark   { background: var(--text-1); color: #fff; border-color: var(--text-1); }
-    .btn-dark:hover { background: #2a271d; }
-    .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-dark   { background: var(--surface-3); color: var(--text-1); border-color: var(--border); }
+    .btn-dark:hover { background: var(--surface-2); border-color: var(--accent); }
+    .btn-accent { background: var(--accent); color: #1a1a1a; border-color: var(--accent); font-weight: 600; }
     .btn-accent:hover { background: var(--accent-hover); }
-    .btn-ghost  { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-1); }
-    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-ghost  { background: transparent; border: 1px solid var(--border); color: var(--text-1); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 
     /* Session buttons grouped */
     .session-btns {
@@ -144,12 +144,12 @@
       background: var(--surface-2); color: var(--text-1); resize: vertical;
       transition: border 140ms, box-shadow 140ms;
     }
-    .code-ta:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(201,104,32,.12); }
+    .code-ta:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(204, 120, 92, 0.2); }
 
     .err-box {
       display: none; align-items: flex-start; gap: 7px;
       padding: 9px 10px; background: var(--red-soft);
-      border: 1px solid rgba(184,50,50,.2); border-radius: var(--radius-sm);
+      border: 1px solid rgba(217, 112, 102, 0.3); border-radius: var(--radius-sm);
       font-size: 12px; color: var(--red); line-height: 1.55;
     }
     .err-box.on { display: flex; }
@@ -228,7 +228,7 @@
     .truck-id {
       font-family: var(--font-mono); font-size: 11.5px; font-weight: 500;
       background: var(--surface-2); border: 1px solid var(--border);
-      padding: 2px 7px; border-radius: 4px;
+      padding: 2px 7px; border-radius: 4px; color: var(--text-1);
     }
     .route-chain { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
     .r-node { background: var(--blue-soft); color: var(--blue); font-family: var(--font-mono); font-size: 10.5px; border-radius: 4px; padding: 1px 6px; }
@@ -314,11 +314,11 @@
     }
     .state-panel .raw-scroll { flex: 1; min-height: 0; }
 
-    /* JSON coloring */
-    .jk { color: #2b5faa; }
-    .js { color: #1a6648; }
-    .jn { color: #c96820; }
-    .jb { color: #b83232; }
+    /* JSON coloring - dark theme */
+    .jk { color: #87ceeb; }
+    .js { color: #98c379; }
+    .jn { color: #d19a66; }
+    .jb { color: #e06c75; }
     .jz { color: var(--text-3); }
 
     /* Docs tab */
@@ -357,7 +357,7 @@
     .step-grid { display: grid; grid-template-columns: 26px 1fr; gap: 8px 11px; margin: 10px 0 14px; }
     .step-num {
       width: 22px; height: 22px; border-radius: 50%;
-      background: var(--accent-soft); border: 1px solid rgba(201,104,32,.22);
+      background: var(--accent-soft); border: 1px solid rgba(204, 120, 92, 0.3);
       font-size: 10.5px; font-weight: 700; color: var(--accent);
       display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
     }
@@ -368,7 +368,7 @@
       padding: 2px 8px; border-radius: 4px;
       font-family: var(--font-mono); font-size: 11.5px;
       background: var(--red-soft); color: var(--red);
-      border: 1px solid rgba(184,50,50,.15); white-space: nowrap;
+      border: 1px solid rgba(217, 112, 102, 0.3); white-space: nowrap;
     }
     .diff-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; margin: 10px 0; }
     .diff-card {
@@ -392,7 +392,7 @@
   <header class="topbar">
     <div class="topbar-left">
       <div class="brand-mark">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
         </svg>
       </div>
