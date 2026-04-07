@@ -101,39 +101,19 @@ def log_start(task: str, env: str, model: str) -> None:
 def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]) -> None:
     error_val = error if error else "null"
     done_val = "true" if done else "false"
+    # Ensure action string contains no newlines (replace with space)
+    action_str = action.replace("\n", " ").replace("\r", " ")
     print(
-        f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}",
+        f"[STEP] step={step} action={action_str} reward={reward:.2f} done={done_val} error={error_val}",
         flush=True,
     )
-
-
-def log_metadata(step: int, obs: DynamicRouteObservation, reward: float, done: bool) -> None:
-    """Log detailed metadata for each step."""
-    print(f"\n=== METADATA FOR STEP {step} ===", flush=True)
-    
-    step_data = {
-        "observation": {
-            "time_step": obs.time_step,
-            "trucks": [t.model_dump() for t in obs.trucks],
-            "packages": [p.model_dump() for p in obs.packages],
-            "event": obs.event.model_dump() if obs.event else None,
-            "distances": obs.distances,
-            "fuel_stations": obs.fuel_stations,
-            "metadata": obs.metadata if obs.metadata else {},
-        },
-        "reward": reward,
-        "done": done,
-    }
-    
-    print(json.dumps(step_data, indent=2), flush=True)
-    print("=" * 50 + "\n", flush=True)
 
 
 def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     success_val = "true" if success else "false"
     print(
-        f"[END] success={success_val} steps={steps} score={score:.4f} rewards={rewards_str}",
+        f"[END] success={success_val} steps={steps} score={score:.2f} rewards={rewards_str}",
         flush=True,
     )
 
@@ -278,10 +258,10 @@ async def get_model_action(
 # ── main loop ─────────────────────────────────────────────────────────────────
 async def main() -> None:
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-    env = await DynamicRouteEnv.from_docker_image(
-        IMAGE_NAME, 
-        env_vars={"DRO_TASK": TASK_NAME}
-    )
+    
+    from client import DynamicRouteEnv # //verified -- imports exist
+    
+    env = await DynamicRouteEnv.from_docker_image(f"{IMAGE_NAME}:latest", env_vars={"DRO_TASK": TASK_NAME})
 
     log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
 
@@ -319,9 +299,6 @@ async def main() -> None:
                     error=error_msg
                 )
                 
-                # Log metadata even for failed parse
-                log_metadata(step=step, obs=obs, reward=0.0, done=False)
-                
                 # Ask LLM to retry
                 conversation.append({
                     "role": "user",
@@ -354,9 +331,6 @@ async def main() -> None:
                     error=error
                 )
                 
-                # Log detailed metadata for this step
-                log_metadata(step=step, obs=obs, reward=reward, done=done)
-                
                 if done:
                     break
                 
@@ -388,9 +362,6 @@ async def main() -> None:
                     error=err_str
                 )
                 
-                # Log metadata even for environment errors
-                log_metadata(step=step, obs=obs, reward=0.0, done=False)
-                
                 conversation.append({
                     "role": "user",
                     "content": f"Environment error: {err_str}\nPlease fix and retry."
@@ -398,8 +369,8 @@ async def main() -> None:
 
         # Compute final score
         total_reward = sum(rewards)
-        max_reward = MAX_STEPS * 1.0
-        final_score = min(1.0, total_reward / max_reward) if max_reward > 0 else 0.0
+        max_reward = float(steps_taken) if steps_taken > 0 else 1.0
+        final_score = min(1.0, total_reward / max_reward)
         success = final_score >= SUCCESS_SCORE_THRESHOLD
 
     except Exception as e:
