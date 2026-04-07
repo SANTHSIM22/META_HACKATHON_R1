@@ -48,6 +48,12 @@ async def custom_ui(request: Request):
     with open(html_path, "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
+if __name__ == "__main__":
+    import uvicorn
+    def main():
+        uvicorn.run("server.app:app", host="0.0.0.0", port=8000, reload=True)
+    main()
+
 from fastapi.encoders import jsonable_encoder
 
 @app.get("/current_state")

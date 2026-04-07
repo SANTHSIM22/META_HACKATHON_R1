@@ -286,3 +286,37 @@ Dynamic_Routing/
     ├── Dynamic_Routing_environment.py  # Core simulation logic
     └── index.html           # Embedded Javascript/HTML Web Interface
 ```
+
+## Pre-Submission Validation
+
+This repository includes a validation bash script (`validate-submission.sh`) to guarantee it conforms directly to the rigorous OpenEnv Hackathon requirements. 
+
+To execute the validation workflow yourself after pushing your space to Hugging Face, run:
+
+```bash
+bash validate-submission.sh https://<your-space-name>.hf.space .
+```
+
+### Official Validation Results
+The Dynamic Route Optimizer environment officially passes all tests. Below is the automated validator output for our Hugging Face Space submission:
+
+```text
+========================================
+  OpenEnv Submission Validator
+========================================
+[16:30:08] Repo:     /mnt/c/Users/HP/Desktop/MetaHackathon_R1/Dynamic_Routing
+[16:30:08] Ping URL: https://santhsim22-dynamic-routing.hf.space
+
+[16:30:08] Step 1/3: Pinging HF Space (https://santhsim22-dynamic-routing.hf.space/reset) ...
+[16:30:09] PASSED -- HF Space is live and responds to /reset
+[16:30:09] Step 2/3: Running docker build ...
+[16:31:58] PASSED -- Docker build succeeded
+[16:31:58] Step 3/3: Running openenv validate ...
+[16:32:00] PASSED -- openenv validate passed
+[16:32:00]   [OK] Dynamic_Routing: Ready for multi-mode deployment
+
+========================================
+  All 3/3 checks passed!
+  Your Dynamic Routing submission is ready to submit.    
+========================================
+```
