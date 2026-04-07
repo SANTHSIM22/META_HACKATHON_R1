@@ -48,7 +48,23 @@ async def custom_ui(request: Request):
     with open(html_path, "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
+from fastapi.encoders import jsonable_encoder
 
+@app.get("/current_state")
+async def current_state(request: Request):
+    try:
+        from .Dynamic_Routing_environment import GLOBAL_EPISODE_ID, GLOBAL_STEP_COUNT, DynamicRoutingEnvironment
+    except ImportError:
+        from server.Dynamic_Routing_environment import GLOBAL_EPISODE_ID, GLOBAL_STEP_COUNT, DynamicRoutingEnvironment
+
+    env = DynamicRoutingEnvironment()
+    obs = env._build_obs()
+
+    return JSONResponse(content={
+        "episode_id": GLOBAL_EPISODE_ID,
+        "step_count": GLOBAL_STEP_COUNT,
+        "observation": jsonable_encoder(obs)
+    })
 
 
 def main(host: str = "0.0.0.0", port: int = 8000) -> None:

@@ -27,6 +27,7 @@ ACTIVE_TASK = raw_task.strip("\"'")
 # 🚨 GLOBAL STATE — survives between HTTP requests 🚨
 GLOBAL_SIM: Dict[str, Any] = {}
 GLOBAL_STEP_COUNT: int = 0
+GLOBAL_EPISODE_ID: str = ""
 
 
 class DynamicRoutingEnvironment(Environment):
@@ -41,7 +42,7 @@ class DynamicRoutingEnvironment(Environment):
     # ── reset ─────────────────────────────────────────────────────────────
 
     def reset(self, seed: Optional[int] = None, episode_id: Optional[str] = None, **kwargs: Any) -> DynamicRouteObservation:
-        global GLOBAL_SIM, GLOBAL_STEP_COUNT, ACTIVE_TASK
+        global GLOBAL_SIM, GLOBAL_STEP_COUNT, ACTIVE_TASK, GLOBAL_EPISODE_ID
         
         with open("reset_args.txt", "w") as f:
             f.write(f"episode_id: {episode_id}, seed: {seed}, kwargs: {kwargs}\n")
@@ -51,9 +52,11 @@ class DynamicRoutingEnvironment(Environment):
             if task_key in TASKS:
                 ACTIVE_TASK = task_key
                 self._task = TASKS[ACTIVE_TASK]
+            episode_id = str(uuid4())
                 
         GLOBAL_STEP_COUNT = 0
-        self._state = State(episode_id=episode_id or str(uuid4()), step_count=0)
+        GLOBAL_EPISODE_ID = episode_id or str(uuid4())
+        self._state = State(episode_id=GLOBAL_EPISODE_ID, step_count=0)
         GLOBAL_SIM  = self._task.generate_state()
         
         with open("reset_args.txt", "a") as f:

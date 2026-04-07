@@ -292,7 +292,7 @@ async def main() -> None:
 
     try:
         # Reset environment
-        result = await env.reset()
+        result = await env.reset(episode_id=f"task:{TASK_NAME}")
         obs = result.observation
         
         # Initialize conversation with system prompt

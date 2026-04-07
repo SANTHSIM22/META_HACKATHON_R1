@@ -129,6 +129,13 @@
     .btn-dark:hover { background: #2a271d; }
     .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
     .btn-accent:hover { background: var(--accent-hover); }
+    .btn-ghost  { background: var(--surface-2); border: 1px solid var(--border); color: var(--text-1); }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Session buttons grouped */
+    .session-btns {
+      display: flex; flex-direction: column; gap: 7px;
+    }
 
     .code-ta {
       width: 100%; height: 130px;
@@ -167,7 +174,7 @@
     .tab-btn:hover  { color: var(--text-1); }
     .tab-btn.active { color: var(--text-1); border-bottom-color: var(--accent); }
 
-    /* Tab panes — each is a flex column that fills remaining height */
+    /* Tab panes */
     .tab-pane {
       display: none; flex: 1;
       flex-direction: column;
@@ -253,8 +260,9 @@
       max-height: 200px;
     }
 
-    /* Raw tab — needs to fill the pane height */
-    #tab-raw { padding: 22px; }
+    /* Raw / State tabs share this layout */
+    #tab-raw, #tab-state { padding: 22px; overflow: hidden; }
+
     .raw-wrap {
       display: flex; flex-direction: column;
       flex: 1; min-height: 0;
@@ -265,7 +273,18 @@
       padding: 10px 16px; background: var(--surface-2);
       border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
+    .raw-toolbar-left { display: flex; align-items: center; gap: 10px; }
     .raw-toolbar-title { font-size: 12px; font-weight: 600; color: var(--text-2); }
+
+    /* State tab meta pill */
+    .state-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 500; color: var(--text-3);
+      background: var(--surface-3); border: 1px solid var(--border);
+      padding: 2px 9px; border-radius: 20px;
+    }
+    .state-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); }
+
     .copy-btn {
       display: flex; align-items: center; gap: 5px;
       font-family: var(--font); font-size: 12px; font-weight: 500;
@@ -283,6 +302,17 @@
       color: var(--text-2); padding: 16px 20px;
       white-space: pre; word-break: break-all;
     }
+
+    /* State tab — two-panel layout */
+    .state-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 13px;
+      flex: 1; min-height: 0;
+    }
+    .state-panel {
+      display: flex; flex-direction: column;
+      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    }
+    .state-panel .raw-scroll { flex: 1; min-height: 0; }
 
     /* JSON coloring */
     .jk { color: #2b5faa; }
@@ -380,6 +410,7 @@
   <aside class="sidebar">
     <div class="sidebar-inner">
 
+      <!-- Scenario -->
       <div>
         <span class="s-label">Scenario</span>
         <div class="diff-badge sel" data-val="easy_avoid_blockage">
@@ -395,16 +426,24 @@
 
       <div class="s-div"></div>
 
+      <!-- Session — all three buttons together -->
       <div>
         <span class="s-label">Session</span>
-        <button class="btn btn-dark" id="reset-btn">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-          Initialize Session
-        </button>
+        <div class="session-btns">
+          <button class="btn btn-dark" id="reset-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Initialize Session
+          </button>
+          <button class="btn btn-ghost" id="state-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Get State
+          </button>
+        </div>
       </div>
 
       <div class="s-div"></div>
 
+      <!-- Dispatch -->
       <div style="display:flex;flex-direction:column;gap:8px;">
         <span class="s-label">Dispatch Action</span>
         <p style="font-size:11.5px;color:var(--text-3);line-height:1.55;">Route update JSON. Copy valid IDs from the Fleet table after initializing.</p>
@@ -437,10 +476,11 @@
     <nav class="tab-bar">
       <button class="tab-btn active" data-tab="overview">Overview</button>
       <button class="tab-btn" data-tab="raw">Raw Response</button>
+      <button class="tab-btn" data-tab="state">Current State</button>
       <button class="tab-btn" data-tab="docs">Documentation</button>
     </nav>
 
-    <!-- Overview -->
+    <!-- ── Overview ── -->
     <div class="tab-pane active" id="tab-overview">
       <div class="stats-row">
         <div class="stat-card">
@@ -461,7 +501,7 @@
         <div class="stat-card">
           <div class="stat-label">Status</div>
           <div class="stat-val" id="val-st" style="font-size:16px;padding-top:5px;">Idle</div>
-          <div class="badge b-gray" id="st-badge" style="margin-top:5px;">Awaiting init</div>
+          <div class="badge b-gray" id="st-badge">Awaiting init</div>
         </div>
       </div>
 
@@ -496,11 +536,17 @@
       </div>
     </div>
 
-    <!-- Raw Response — fills remaining height, JSON scrolls inside -->
+    <!-- ── Raw Response ── -->
     <div class="tab-pane" id="tab-raw" style="overflow:hidden;">
       <div class="raw-wrap">
         <div class="raw-toolbar">
-          <span class="raw-toolbar-title">JSON Response</span>
+          <div class="raw-toolbar-left">
+            <span class="raw-toolbar-title">JSON Response</span>
+            <span class="state-pill" id="raw-step-pill" style="display:none;">
+              <span class="state-pill-dot" style="background:var(--accent);"></span>
+              <span id="raw-step-label">Step result</span>
+            </span>
+          </div>
           <button class="copy-btn" id="copy-btn">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             Copy JSON
@@ -512,7 +558,33 @@
       </div>
     </div>
 
-    <!-- Docs -->
+    <!-- ── Current State (Get State) ── -->
+    <div class="tab-pane" id="tab-state" style="overflow:hidden;">
+      <div class="raw-wrap">
+        <div class="raw-toolbar">
+          <div class="raw-toolbar-left">
+            <span class="raw-toolbar-title">Current State</span>
+            <span class="state-pill" id="state-ts-pill" style="display:none;">
+              <span class="state-pill-dot"></span>
+              <span id="state-ts-label">t=0</span>
+            </span>
+            <span class="state-pill" id="state-ep-pill" style="display:none;">
+              <span class="state-pill-dot" style="background:var(--green);"></span>
+              <span id="state-ep-label">episode</span>
+            </span>
+          </div>
+          <button class="copy-btn" id="copy-state-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy JSON
+          </button>
+        </div>
+        <div class="raw-scroll">
+          <div class="raw-content" id="state-json">Click "Get State" in the sidebar to fetch the current environment state.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Docs ── -->
     <div class="tab-pane" id="tab-docs">
       <div class="docs-card">
         <h1>Dynamic Route Optimizer</h1>
@@ -544,11 +616,13 @@ env.close()</code></pre>
         <h2>Using the Web UI</h2>
         <div class="step-grid">
           <div class="step-num">1</div>
-          <div class="step-txt"><strong>Initialize a session.</strong> Click "Initialize Session" in the sidebar. This generates a new map and scenario.</div>
+          <div class="step-txt"><strong>Initialize a session.</strong> Click "Initialize Session" — opens Raw Response tab with the reset payload.</div>
           <div class="step-num">2</div>
-          <div class="step-txt"><strong>Copy valid IDs.</strong> From the Fleet table, note a valid <code>truck_id</code> (e.g. <code>TRK_143</code>). Check the Raw Response tab for valid node names under <code>distances</code>.</div>
+          <div class="step-txt"><strong>Copy valid IDs.</strong> From the Fleet table, note a valid <code>truck_id</code>. Check Raw Response for valid node names under <code>distances</code>.</div>
           <div class="step-num">3</div>
           <div class="step-txt"><strong>Send a step.</strong> Paste your JSON into the Dispatch Action textarea and click Send Step.</div>
+          <div class="step-num">4</div>
+          <div class="step-txt"><strong>Inspect state.</strong> Click "Get State" anytime to view live environment state in the Current State tab.</div>
         </div>
         <pre><code>{
   "route_updates": [
@@ -606,8 +680,11 @@ env.close()</code></pre>
 <script>
   let selectedDiff = 'easy_avoid_blockage';
   let rawData = null;
+  let stateData = null;
 
-  // Difficulty
+  const ALL_TABS = { overview: 'tab-overview', raw: 'tab-raw', state: 'tab-state', docs: 'tab-docs' };
+
+  // ── Difficulty selection ──
   document.querySelectorAll('.diff-badge').forEach(b => {
     b.addEventListener('click', () => {
       document.querySelectorAll('.diff-badge').forEach(x => x.classList.remove('sel'));
@@ -616,35 +693,41 @@ env.close()</code></pre>
     });
   });
 
-  // Tabs
-  const panes = { overview: 'tab-overview', raw: 'tab-raw', docs: 'tab-docs' };
+  // ── Tab switching ──
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    Object.entries(ALL_TABS).forEach(([k, id]) => {
+      const el = document.getElementById(id);
+      if (k === tab) { el.style.display = 'flex'; el.classList.add('active'); }
+      else           { el.style.display = 'none';  el.classList.remove('active'); }
+    });
+  }
+
   document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const tab = btn.dataset.tab;
-      Object.entries(panes).forEach(([k, id]) => {
-        const el = document.getElementById(id);
-        if (k === tab) { el.style.display = 'flex'; el.classList.add('active'); }
-        else           { el.style.display = 'none';  el.classList.remove('active'); }
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  // ── Copy Raw ──
+  function makeCopyBtn(btnId, getData) {
+    document.getElementById(btnId).addEventListener('click', () => {
+      const d = getData();
+      navigator.clipboard.writeText(d ? JSON.stringify(d, null, 2) : '').then(() => {
+        const btn = document.getElementById(btnId);
+        btn.classList.add('copied');
+        btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied`;
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy JSON`;
+        }, 2000);
       });
     });
-  });
+  }
+  makeCopyBtn('copy-btn',       () => rawData);
+  makeCopyBtn('copy-state-btn', () => stateData);
 
-  // Copy
-  document.getElementById('copy-btn').addEventListener('click', () => {
-    navigator.clipboard.writeText(rawData ? JSON.stringify(rawData, null, 2) : '').then(() => {
-      const btn = document.getElementById('copy-btn');
-      btn.classList.add('copied');
-      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied`;
-      setTimeout(() => {
-        btn.classList.remove('copied');
-        btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy JSON`;
-      }, 2000);
-    });
-  });
-
-  // Helpers
+  // ── Helpers ──
   function setConn(state, label) {
     const d = document.getElementById('conn-dot');
     d.className = 'conn-dot' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : '');
@@ -660,7 +743,7 @@ env.close()</code></pre>
     b.textContent = txt; b.className = 'badge ' + cls;
   }
 
-  // Syntax highlight
+  // ── Syntax highlight ──
   function hl(json) {
     return json
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
@@ -680,19 +763,30 @@ env.close()</code></pre>
     ).join('');
   }
 
+  async function augmentDataWithState(res) {
+    try {
+      const sr = await fetch('/current_state');
+      if (sr.ok) {
+        const sd = await sr.json();
+        res.episode_id = sd.episode_id;
+        res.step_count = sd.step_count;
+      }
+    } catch(e) {}
+    return res;
+  }
+
+  // ── Render overview + raw tab ──
   function update(res) {
     if (!res || !res.observation) return;
-    rawData = res;
     const obs = res.observation;
 
     document.getElementById('val-ts').textContent = obs.time_step ?? '—';
     document.getElementById('val-rw').textContent = res.reward !== undefined ? res.reward.toFixed(4) : '—';
     document.getElementById('val-fl').textContent = (obs.trucks || []).length;
-
     document.getElementById('val-st').textContent = res.done ? 'Finished' : 'Running';
     setBadge(res.done ? 'Episode complete' : 'Active', res.done ? 'b-blue' : 'b-green');
 
-    // Fleet
+    // Fleet table
     const tbody = document.getElementById('truck-tbody');
     if (obs.trucks && obs.trucks.length) {
       document.getElementById('fleet-meta').textContent = `${obs.trucks.length} vehicle${obs.trucks.length > 1 ? 's' : ''}`;
@@ -732,10 +826,29 @@ env.close()</code></pre>
     document.getElementById('pkg-label').textContent = `${pkgN} package${pkgN !== 1 ? 's' : ''}`;
     document.getElementById('pkg-pre').textContent = pkgs ? JSON.stringify(pkgs, null, 2) : 'None';
 
-    // Raw
-    document.getElementById('raw-json').innerHTML = hl(JSON.stringify(res, null, 2));
+    // Raw tab
+    const formattedRes = {
+      episode_id: res.episode_id,
+      step_count: res.step_count || 0,
+      observation: res.observation,
+      reward: res.reward,
+      done: res.done
+    };
+    rawData = formattedRes;
+    document.getElementById('raw-json').innerHTML = hl(JSON.stringify(formattedRes, null, 2));
+
+    // Show step pill if step_count > 0
+    const pill = document.getElementById('raw-step-pill');
+    const sc = formattedRes.step_count || 0;
+    if (sc > 0) {
+      pill.style.display = 'inline-flex';
+      document.getElementById('raw-step-label').textContent = `step ${sc}`;
+    } else {
+      pill.style.display = 'none';
+    }
   }
 
+  // ── Reset (Initialize) → opens Raw tab ──
   async function resetEnv() {
     clearErr(); setConn('', 'Connecting...');
     try {
@@ -748,13 +861,15 @@ env.close()</code></pre>
       setConn('ok', `Connected · ${selectedDiff.replace(/_/g,' ')}`);
       document.getElementById('val-st').textContent = 'Running';
       setBadge('Active', 'b-green');
-      update(data);
+      update(await augmentDataWithState(data));
+      switchTab('raw');                         // ← open Raw Response
     } catch(e) {
       setConn('err', 'Connection failed');
       showErr(e.message);
     }
   }
 
+  // ── Step → updates overview + raw (stays on current tab) ──
   async function stepEnv() {
     clearErr();
     try {
@@ -774,14 +889,54 @@ env.close()</code></pre>
         } catch(_) { msg = txt.substring(0,140); }
         throw new Error(msg);
       }
-      update(await r.json());
+      const data = await r.json();
+      update(await augmentDataWithState(data));
     } catch(e) {
       showErr(e instanceof SyntaxError ? 'Invalid JSON in dispatch action' : e.message);
     }
   }
 
+  // ── Get State → opens dedicated State tab ──
+  async function getEnvState() {
+    clearErr();
+    try {
+      const sRes = await fetch('/current_state');
+      if (!sRes.ok) throw new Error(`HTTP ${sRes.status}`);
+      const sData = await sRes.json();
+      stateData = sData;
+
+      // Show pills
+      const tsVal = sData.observation?.time_step ?? sData.step_count ?? 0;
+      document.getElementById('state-ts-pill').style.display = 'inline-flex';
+      document.getElementById('state-ts-label').textContent = `t = ${tsVal}`;
+      if (sData.episode_id) {
+        document.getElementById('state-ep-pill').style.display = 'inline-flex';
+        document.getElementById('state-ep-label').textContent = sData.episode_id;
+      }
+
+      document.getElementById('state-json').innerHTML = hl(JSON.stringify(sData, null, 2));
+
+      // Also mirror to overview stats if observation present
+      if (sData.observation) {
+        const reconstructed = {
+          episode_id: sData.episode_id,
+          step_count: sData.step_count,
+          observation: sData.observation,
+          reward: sData.observation.reward ?? 0.0,
+          done: sData.observation.done ?? false,
+        };
+        update(reconstructed);
+      }
+
+      switchTab('state');                        // ← open State tab
+    } catch(e) {
+      showErr(e.message);
+    }
+  }
+
   document.getElementById('reset-btn').addEventListener('click', resetEnv);
   document.getElementById('step-btn').addEventListener('click', stepEnv);
+  document.getElementById('state-btn').addEventListener('click', getEnvState);
 </script>
 </body>
 </html>
