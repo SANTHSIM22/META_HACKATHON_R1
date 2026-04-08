@@ -261,7 +261,8 @@ async def main() -> None:
     
     from client import DynamicRouteEnv # //verified -- imports exist
     
-    env = await DynamicRouteEnv.from_docker_image(f"{IMAGE_NAME}:latest", env_vars={"DRO_TASK": TASK_NAME})
+    image_to_run = IMAGE_NAME if ":" in IMAGE_NAME.split("/")[-1] else f"{IMAGE_NAME}:latest"
+    env = await DynamicRouteEnv.from_docker_image(image_to_run, env_vars={"DRO_TASK": TASK_NAME})
 
     log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
 
