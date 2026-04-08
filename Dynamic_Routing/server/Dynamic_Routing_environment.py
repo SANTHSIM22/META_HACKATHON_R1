@@ -33,6 +33,7 @@ GLOBAL_EPISODE_ID: str = ""
 class DynamicRoutingEnvironment(Environment):
 
     SUPPORTS_CONCURRENT_SESSIONS: bool = True
+    SUPPORTED_TASKS = list(TASKS.keys())
 
     def __init__(self) -> None:
         self._state = State(episode_id=str(uuid4()), step_count=0)
