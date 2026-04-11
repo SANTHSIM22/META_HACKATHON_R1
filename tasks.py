@@ -48,7 +48,6 @@ class DynamicTask:
         self.grid_size = grid_size
         self.initial_state: Dict[str, Any] = {}
 
-    # ── state generation ─────────────────────────────────────────────────
 
     def generate_state(self) -> Dict[str, Any]:
         """Procedurally build a fresh simulation state."""
@@ -136,8 +135,6 @@ class DynamicTask:
         }
         return copy.deepcopy(self.initial_state)
 
-    # ── grader ───────────────────────────────────────────────────────────
-
     def grade(self, state: Dict[str, Any]) -> float:
         """
         Grade the final simulation state.
@@ -166,7 +163,6 @@ class DynamicTask:
         on_time = sum(1 for p in state["packages"] if p["status"] == "delivered")
         late    = sum(1 for p in state["packages"] if p["status"] == "late")
 
-        # Per-difficulty grading weights
         weights = {
             "easy":   {"time_penalty": 0.0002, "late_penalty": 0.05},
             "medium": {"time_penalty": 0.0005, "late_penalty": 0.10},
@@ -182,7 +178,6 @@ class DynamicTask:
         return max(0.0, min(1.0, score))
 
 
-# ── task catalogue ────────────────────────────────────────────────────────────
 
 TASKS: Dict[str, DynamicTask] = {
     # Task 1 — Easy

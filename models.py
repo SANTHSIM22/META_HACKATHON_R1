@@ -39,11 +39,13 @@ class LoadTransfer(BaseModel):
 class DynamicRouteAction(Action):
     route_updates: Optional[Union[List[RouteUpdate], Json[List[RouteUpdate]]]] = Field(
         default=None,
-        description="One RouteUpdate per truck with truck_id and new_route_order."
+        description="One RouteUpdate per truck with truck_id and new_route_order.",
     )
-    load_transfers: Optional[Union[List[LoadTransfer], Json[List[LoadTransfer]]]] = Field(
-        default=None,
-        description="Transfer packages between trucks at the same location."
+    load_transfers: Optional[Union[List[LoadTransfer], Json[List[LoadTransfer]]]] = (
+        Field(
+            default=None,
+            description="Transfer packages between trucks at the same location.",
+        )
     )
 
 

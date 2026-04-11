@@ -6,7 +6,7 @@ except Exception as e:
 import os
 import sys
 
-# Force disable the default Gradio playground
+
 os.environ["ENABLE_WEB_INTERFACE"] = "false"
 
 try:
@@ -28,12 +28,14 @@ app = create_app(
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi import Request
 
+
 @app.exception_handler(ValueError)
 async def value_error_handler(request: Request, exc: ValueError):
     return JSONResponse(
         status_code=400,
         content={"detail": str(exc)},
     )
+
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
@@ -42,43 +44,61 @@ async def general_exception_handler(request: Request, exc: Exception):
         content={"detail": str(exc)},
     )
 
+
 @app.get("/web", response_class=HTMLResponse)
 async def custom_ui(request: Request):
     html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
     with open(html_path, "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
+
 if __name__ == "__main__":
     import uvicorn
+
     def main():
         uvicorn.run("server.app:app", host="0.0.0.0", port=8000, reload=True)
+
     main()
 
 from fastapi.encoders import jsonable_encoder
 
+
 @app.get("/current_state")
 async def current_state(request: Request):
     try:
-        from .Dynamic_Routing_environment import GLOBAL_EPISODE_ID, GLOBAL_STEP_COUNT, DynamicRoutingEnvironment
+        from .Dynamic_Routing_environment import (
+            GLOBAL_EPISODE_ID,
+            GLOBAL_STEP_COUNT,
+            DynamicRoutingEnvironment,
+        )
     except ImportError:
-        from server.Dynamic_Routing_environment import GLOBAL_EPISODE_ID, GLOBAL_STEP_COUNT, DynamicRoutingEnvironment
+        from server.Dynamic_Routing_environment import (
+            GLOBAL_EPISODE_ID,
+            GLOBAL_STEP_COUNT,
+            DynamicRoutingEnvironment,
+        )
 
     env = DynamicRoutingEnvironment()
     obs = env._build_obs()
 
-    return JSONResponse(content={
-        "episode_id": GLOBAL_EPISODE_ID,
-        "step_count": GLOBAL_STEP_COUNT,
-        "observation": jsonable_encoder(obs)
-    })
+    return JSONResponse(
+        content={
+            "episode_id": GLOBAL_EPISODE_ID,
+            "step_count": GLOBAL_STEP_COUNT,
+            "observation": jsonable_encoder(obs),
+        }
+    )
 
 
 def main(host: str = "0.0.0.0", port: int = 8000) -> None:
     import uvicorn
+
     uvicorn.run(app, host=host, port=port)
+
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()

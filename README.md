@@ -1,3 +1,15 @@
+---
+title: Dynamic Routing Environment Server
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+app_port: 8000
+base_path: /web
+tags:
+  - openenv
+---
+
 # Dynamic Route Optimizer (Meta Hackathon)
 
 A sophisticated AI-training environment for managing real-time logistics and delivery fleet operations, built on the OpenEnv specification. This project enables training Large Language Models (LLMs) and Reinforcement Learning agents to solve complex vehicle routing problems with dynamic constraints and real-world conditions.

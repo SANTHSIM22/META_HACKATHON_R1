@@ -158,7 +158,7 @@ fi
 
 log "${BOLD}Step 3/3: Running openenv validate${NC} ..."
 
-# Skipped the duplicate bash command checking logic since we explicitly reference the exe above now
+
 
 VALIDATE_OK=false
 VALIDATE_OUTPUT=$(cd "$REPO_DIR" && ../venv/Scripts/openenv.exe validate 2>&1) && VALIDATE_OK=true

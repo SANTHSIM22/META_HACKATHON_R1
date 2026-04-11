@@ -15,9 +15,7 @@ from openenv.core.env_server.types import State
 from models import DynamicRouteAction, DynamicRouteObservation
 
 
-class DynamicRouteEnv(
-    EnvClient[DynamicRouteAction, DynamicRouteObservation, State]
-):
+class DynamicRouteEnv(EnvClient[DynamicRouteAction, DynamicRouteObservation, State]):
     """
     Client for the Dynamic Routing Environment.
 
@@ -57,8 +55,11 @@ class DynamicRouteEnv(
         payload = {}
         if action.route_updates is not None:
             payload["route_updates"] = [
-                {"truck_id": ru.truck_id, "new_route_order": ru.new_route_order} 
-                if hasattr(ru, "truck_id") else ru 
+                (
+                    {"truck_id": ru.truck_id, "new_route_order": ru.new_route_order}
+                    if hasattr(ru, "truck_id")
+                    else ru
+                )
                 for ru in action.route_updates
             ]
 
