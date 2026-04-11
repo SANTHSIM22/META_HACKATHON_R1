@@ -158,7 +158,7 @@ class DynamicTask:
         """
         total = len(state["packages"])
         if total == 0:
-            return 0.0
+            return 0.01
 
         on_time = sum(1 for p in state["packages"] if p["status"] == "delivered")
         late    = sum(1 for p in state["packages"] if p["status"] == "late")

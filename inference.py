@@ -220,7 +220,7 @@ def parse_llm_response(text: str) -> Optional[DynamicRouteAction]:
         return DynamicRouteAction(route_updates=updates, load_transfers=transfers)
 
     except Exception as e:
-        print(f"[DEBUG] Parse failed: {e}", flush=True)
+        print(f"[DEBUG] Parse failed: {e}", file=sys.stderr, flush=True)
         return None
 
 
@@ -252,7 +252,7 @@ async def get_model_action(
     llm_output, err = await asyncio.to_thread(run_sync)
 
     if err:
-        print(f"[DEBUG] Model request failed: {err}", flush=True)
+        print(f"[DEBUG] Model request failed: {err}", file=sys.stderr, flush=True)
         return None, ""
 
     conversation.append({"role": "assistant", "content": llm_output})
@@ -300,12 +300,12 @@ async def main() -> None:
 
                     error_msg = "Could not parse JSON from LLM output"
                     action_str = "null"
-                    rewards.append(0.0)
+                    rewards.append(0.01)
 
                     log_step(
                         step=step,
                         action=action_str,
-                        reward=0.0,
+                        reward=0.01,
                         done=False,
                         error=error_msg,
                     )
@@ -327,7 +327,8 @@ async def main() -> None:
                 try:
                     result = await env.step(action)
                     obs = result.observation
-                    reward = result.reward or 0.0
+                    raw_step_reward = result.reward or 0.01
+                    reward = max(0.01, min(0.99, raw_step_reward))
                     done = result.done
                     error = obs.metadata.get("error") if obs.metadata else None
 
@@ -363,12 +364,12 @@ async def main() -> None:
                 except Exception as step_err:
 
                     err_str = str(step_err)
-                    rewards.append(0.0)
+                    rewards.append(0.01)
 
                     log_step(
                         step=step,
                         action=action_str,
-                        reward=0.0,
+                        reward=0.01,
                         done=False,
                         error=err_str,
                     )
@@ -399,7 +400,7 @@ async def main() -> None:
             try:
                 await env.close()
             except Exception as e:
-                print(f"[DEBUG] env.close() error: {e}", flush=True)
+                print(f"[DEBUG] env.close() error: {e}", file=sys.stderr, flush=True)
 
             log_end(success=success, steps=steps_taken, rewards=rewards)
 
