@@ -380,13 +380,15 @@ async def main() -> None:
                         }
                     )
 
-            if hasattr(env, "submit_task_score"):
-
-                pass
-
             total_reward = sum(rewards)
             max_reward = float(steps_taken) if steps_taken > 0 else 1.0
-            final_score = min(1.0, total_reward / max_reward)
+            
+            # Ensure final_score falls strictly within (0, 1) to pass validation
+            raw_score = total_reward / max_reward
+            final_score = max(0.001, min(0.999, raw_score))
+
+            if hasattr(env, "submit_task_score"):
+                await env.submit_task_score(final_score)
 
             success = final_score >= SUCCESS_SCORE_THRESHOLD
 
