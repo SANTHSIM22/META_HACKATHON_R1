@@ -279,7 +279,7 @@ async def main() -> None:
 
         rewards: List[float] = []
         steps_taken = 0
-        final_score = 0.001
+        final_score = 0.01
         success = False
 
         try:
@@ -383,11 +383,12 @@ async def main() -> None:
         except Exception as e:
             print(f"[ERROR] {e}", file=sys.stderr, flush=True)
 
-        finally:            # Always ensure a valid score between (0, 1) is submitted, even on crash
+        finally:            
+            # Always ensure a valid score between (0, 1) is submitted, even on crash
             total_reward = sum(rewards)
             max_reward = float(steps_taken) if steps_taken > 0 else 1.0
             raw_score = total_reward / max_reward
-            final_score = max(0.001, min(0.999, raw_score))
+            final_score = max(0.01, min(0.99, raw_score))
             success = final_score >= SUCCESS_SCORE_THRESHOLD
             
             if hasattr(env, "submit_task_score"):

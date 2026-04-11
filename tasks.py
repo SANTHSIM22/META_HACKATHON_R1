@@ -175,7 +175,7 @@ class DynamicTask:
         late_penalty = late * w["late_penalty"]
 
         score = base - time_penalty - late_penalty
-        return max(0.0, min(1.0, score))
+        return max(0.01, min(0.99, score))
 
 
 
