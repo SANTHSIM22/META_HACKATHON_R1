@@ -1,7 +1,72 @@
 spec_version: 1
 name: Dynamic_Routing
+version: "1.0.0"
+description: >
+  OpenEnv-compatible logistics environment for evaluating agents on dynamic route optimization,
+  fleet management, and adapting to real-time disruptive events like road blockages and storms.
 type: space
 runtime: fastapi
 app: server.app:app
 port: 8000
+
+models:
+  observation: models:DynamicRouteObservation
+  action: models:DynamicRouteAction
+
+environment:
+  max_steps: 10
+
+observation_space:
+  time_step: int
+  trucks: list[dict]
+  packages: list[dict]
+  event: dict
+  distances: dict
+  fuel_stations: list[str]
+  metadata: dict
+
+action_space:
+  type: structured
+  actions:
+    route_updates: list[dict]
+    load_transfers: list[dict]
+
+reward:
+  type: shaped
+  range: [0.01, 0.99]
+  components:
+    delivery_efficiency: positive
+    time_penalty: negative
+    late_penalty: negative
+    fuel_strand_penalty: negative
+
+tasks:
+  - id: easy_avoid_blockage
+    name: Easy Avoid Blockage
+    difficulty: easy
+    grader: server.Dynamic_Routing_environment:DynamicRoutingEnvironment.grade_task
+    score_range: [0.01, 0.99]
+  - id: medium_reroute_fleet
+    name: Medium Reroute Fleet
+    difficulty: medium
+    grader: server.Dynamic_Routing_environment:DynamicRoutingEnvironment.grade_task
+    score_range: [0.01, 0.99]
+  - id: hard_storm_logistics
+    name: Hard Storm Logistics
+    difficulty: hard
+    grader: server.Dynamic_Routing_environment:DynamicRoutingEnvironment.grade_task
+    score_range: [0.01, 0.99]
+
+inference:
+  script: inference.py
+  required_env:
+    - API_BASE_URL
+    - MODEL_NAME
+    - HF_TOKEN
+    - IMAGE_NAME
+  output_format:
+    - "[START] task=<task_name> env=<benchmark> model=<model_name>"
+    - "[STEP] step=<n> action=<action_str> reward=<0.00> done=<true|false> error=<msg|null>"
+    - "[END] success=<true|false> steps=<n> score=<score> rewards=<r1,r2,...,rn>"
+
 
