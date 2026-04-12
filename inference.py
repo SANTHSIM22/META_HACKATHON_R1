@@ -300,12 +300,12 @@ async def main() -> None:
 
                     error_msg = "Could not parse JSON from LLM output"
                     action_str = "null"
-                    rewards.append(0.01)
+                    rewards.append(0.0)
 
                     log_step(
                         step=step,
                         action=action_str,
-                        reward=0.01,
+                        reward=0.0,
                         done=False,
                         error=error_msg,
                     )
@@ -327,8 +327,7 @@ async def main() -> None:
                 try:
                     result = await env.step(action)
                     obs = result.observation
-                    raw_step_reward = result.reward or 0.01
-                    reward = max(0.01, min(0.99, raw_step_reward))
+                    reward = result.reward or 0.0
                     done = result.done
                     error = obs.metadata.get("error") if obs.metadata else None
 
@@ -364,12 +363,12 @@ async def main() -> None:
                 except Exception as step_err:
 
                     err_str = str(step_err)
-                    rewards.append(0.01)
+                    rewards.append(0.0)
 
                     log_step(
                         step=step,
                         action=action_str,
-                        reward=0.01,
+                        reward=0.0,
                         done=False,
                         error=err_str,
                     )

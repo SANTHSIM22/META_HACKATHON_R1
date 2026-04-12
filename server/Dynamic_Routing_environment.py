@@ -240,8 +240,8 @@ class DynamicRoutingEnvironment(Environment):
                     f" Truck {truck['id']} fully refueled at {next_stop}! Station is now EMPTY/CLOSED."
                 )
 
-        raw_reward = sum(step_rewards) / len(step_rewards) if step_rewards else 0.01
-        reward = max(0.01, min(0.99, raw_reward))
+        raw_reward = sum(step_rewards) / len(step_rewards) if step_rewards else 0.0
+        reward = raw_reward
 
         load_time_penalty = transfer_count * 15
         GLOBAL_SIM["time_step"] += 50 + load_time_penalty
@@ -272,7 +272,7 @@ class DynamicRoutingEnvironment(Environment):
     def _build_obs(
         self,
         done: bool = False,
-        reward: float = 0.01,
+        reward: float = 0.0,
         error: Optional[str] = None,
     ) -> DynamicRouteObservation:
         global GLOBAL_SIM
@@ -285,7 +285,7 @@ class DynamicRoutingEnvironment(Environment):
                 distances={},
                 fuel_stations=[],
                 done=False,
-                reward=0.01,
+                reward=0.0,
                 metadata={"task": ACTIVE_TASK, "error": " Call Reset first!"},
             )
         return DynamicRouteObservation(
